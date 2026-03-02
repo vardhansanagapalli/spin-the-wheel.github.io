@@ -1,24 +1,25 @@
+
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Spinning Wheel</title>
 <style>
-    body{
-        font-family:Arial;
-        text-align:center;
-        background:#f4f4f4;
-    }
-    canvas{
-        background:white;
-        margin-top:10px;
-        border-radius:50%;
-    }
-    button,input{
-        padding:8px 14px;
-        margin:6px;
-        font-size:15px;
-    }
+body{
+    font-family:Arial;
+    text-align:center;
+    background:#f4f4f4;
+}
+canvas{
+    background:white;
+    margin-top:10px;
+    border-radius:50%;
+}
+button,input{
+    padding:8px 14px;
+    margin:6px;
+    font-size:15px;
+}
 </style>
 </head>
 <body>
@@ -31,12 +32,13 @@
 <button onclick="drawWheel()">Redraw</button>
 
 <br>
-
 <canvas id="wheel" width="760" height="760"></canvas>
 
 <script>
-const HIDDEN_TARGET = 32;
-const EXTRA_ROTATIONS = 8;
+const TARGETS = [32,5]; // ← spin results order
+let spinIndex = 0;
+
+const EXTRA_ROTATIONS = 6;
 
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
@@ -52,8 +54,7 @@ let colors=[];
 function genColors(n){
     let arr=[];
     for(let i=0;i<n;i++){
-        let hue=i/n*360;
-        arr.push(`hsl(${hue},70%,60%)`);
+        arr.push(`hsl(${i/n*360},70%,60%)`);
     }
     return arr;
 }
@@ -71,12 +72,11 @@ function drawPointer(){
 }
 
 function drawWheel(){
-    num=Math.max(1,Math.min(100,document.getElementById("sectors").value));
+    num=Math.max(1,Math.min(100,sectors.value));
     angle=360/num;
     colors=genColors(num);
 
     ctx.clearRect(0,0,760,760);
-
     let cx=380, cy=380;
 
     for(let i=0;i<num;i++){
@@ -93,28 +93,21 @@ function drawWheel(){
 
         let mid=start+(end-start)/2;
         let r=(320+85)/2;
-        let tx=cx+r*Math.cos(mid);
-        let ty=cy+r*Math.sin(mid);
-
         ctx.fillStyle="black";
         ctx.font="bold 14px Arial";
         ctx.textAlign="center";
         ctx.textBaseline="middle";
-        ctx.fillText(i+1,tx,ty);
+        ctx.fillText(i+1,cx+r*Math.cos(mid),cy+r*Math.sin(mid));
     }
 
-    // center circle
     ctx.beginPath();
     ctx.arc(cx,cy,85,0,Math.PI*2);
     ctx.fillStyle="white";
     ctx.fill();
     ctx.stroke();
 
-    // center text
     ctx.fillStyle="black";
     ctx.font="bold 42px Arial";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
     ctx.fillText(winner?winner:"SPIN",cx,cy);
 
     drawPointer();
@@ -131,10 +124,14 @@ function spin(){
     if(spinning) return;
 
     winner=null;
-    num=Math.max(1,Math.min(100,document.getElementById("sectors").value));
+    num=Math.max(1,Math.min(100,sectors.value));
     angle=360/num;
 
-    let target=((HIDDEN_TARGET-1)%num)+1;
+    // choose predetermined target
+    let target = TARGETS[Math.min(spinIndex,TARGETS.length-1)];
+    spinIndex++;
+
+    target=((target-1)%num)+1;
 
     let pointer=-90;
     let targetCenter=(target-1)*angle+angle/2;
