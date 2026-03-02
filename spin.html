@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Spinning Wheel</title>
+<style>
+    body{
+        font-family:Arial;
+        text-align:center;
+        background:#f4f4f4;
+    }
+    canvas{
+        background:white;
+        margin-top:10px;
+        border-radius:50%;
+    }
+    button,input{
+        padding:8px 14px;
+        margin:6px;
+        font-size:15px;
+    }
+</style>
+</head>
+<body>
+
+<h2>Spinning Wheel</h2>
+
+<label>Sectors (1-100):</label>
+<input type="number" id="sectors" value="50" min="1" max="100">
+<button onclick="spin()">Spin</button>
+<button onclick="drawWheel()">Redraw</button>
+
+<br>
+
+<canvas id="wheel" width="760" height="760"></canvas>
+
+<script>
+const HIDDEN_TARGET = 5;
+const EXTRA_ROTATIONS = 6;
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+let rotation = 0;
+let spinning = false;
+let winner = null;
+
+let num = 50;
+let angle = 360/num;
+let colors=[];
+
+function genColors(n){
+    let arr=[];
+    for(let i=0;i<n;i++){
+        let hue=i/n*360;
+        arr.push(`hsl(${hue},70%,60%)`);
+    }
+    return arr;
+}
+
+function drawPointer(){
+    let cx=380;
+    let top=380-320-8;
+    ctx.fillStyle="red";
+    ctx.beginPath();
+    ctx.moveTo(cx-18,top+18);
+    ctx.lineTo(cx+18,top+18);
+    ctx.lineTo(cx,top-18);
+    ctx.fill();
+    ctx.stroke();
+}
+
+function drawWheel(){
+    num=Math.max(1,Math.min(100,document.getElementById("sectors").value));
+    angle=360/num;
+    colors=genColors(num);
+
+    ctx.clearRect(0,0,760,760);
+
+    let cx=380, cy=380;
+
+    for(let i=0;i<num;i++){
+        let start=(i*angle+rotation)*Math.PI/180;
+        let end=((i+1)*angle+rotation)*Math.PI/180;
+
+        ctx.beginPath();
+        ctx.arc(cx,cy,320,start,end);
+        ctx.arc(cx,cy,85,end,start,true);
+
+        ctx.fillStyle=(winner==i+1)?"gold":colors[i];
+        ctx.fill();
+        ctx.stroke();
+
+        let mid=start+(end-start)/2;
+        let r=(320+85)/2;
+        let tx=cx+r*Math.cos(mid);
+        let ty=cy+r*Math.sin(mid);
+
+        ctx.fillStyle="black";
+        ctx.font="bold 14px Arial";
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        ctx.fillText(i+1,tx,ty);
+    }
+
+    // center circle
+    ctx.beginPath();
+    ctx.arc(cx,cy,85,0,Math.PI*2);
+    ctx.fillStyle="white";
+    ctx.fill();
+    ctx.stroke();
+
+    // center text
+    ctx.fillStyle="black";
+    ctx.font="bold 42px Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(winner?winner:"SPIN",cx,cy);
+
+    drawPointer();
+}
+
+function getWinner(){
+    let pointer=-90;
+    let ang=(pointer-rotation)%360;
+    if(ang<0) ang+=360;
+    return Math.floor(ang/angle)+1;
+}
+
+function spin(){
+    if(spinning) return;
+
+    winner=null;
+    num=Math.max(1,Math.min(100,document.getElementById("sectors").value));
+    angle=360/num;
+
+    let target=((HIDDEN_TARGET-1)%num)+1;
+
+    let pointer=-90;
+    let targetCenter=(target-1)*angle+angle/2;
+    let base=(pointer-targetCenter)%360;
+    if(base<0) base+=360;
+
+    let cur=rotation%360;
+    let delta=(base-cur)%360;
+    if(delta<0) delta+=360;
+
+    let total=delta+360*EXTRA_ROTATIONS;
+
+    let start=rotation;
+    let end=start+total;
+    let startTime=performance.now();
+    let duration=2600+EXTRA_ROTATIONS*200;
+
+    spinning=true;
+
+    function animate(t){
+        let p=Math.min(1,(t-startTime)/duration);
+        let ease=1-Math.pow(1-p,3);
+
+        rotation=start+(end-start)*ease;
+        drawWheel();
+
+        if(p<1){
+            requestAnimationFrame(animate);
+        }else{
+            spinning=false;
+            rotation=end%360;
+            winner=getWinner();
+            drawWheel();
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+drawWheel();
+</script>
+
+</body>
+</html>
